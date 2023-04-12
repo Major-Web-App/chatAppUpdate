@@ -1,16 +1,25 @@
 import React, { useEffect } from 'react';
-import {Button, View,Text,StyleSheet } from 'react-native';
+import {Button, View,Text,StyleSheet, FlatList } from 'react-native';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons';
 import CustomHeaderButton from '../components/CustomHeaderButton';
 import { useSelector } from 'react-redux';
+import DataItem from '../components/DataItem';
+import PageContainer from '../components/PageContainer';
+import PageTitle from '../components/PageTitle';
 
 const ChatListScreen = props => {
 	
 	const selectedUser = props.route?.params?.selectedUserId;
 	const userData = useSelector(state => state.auth.userData);
+	const storedUsers = useSelector(state=>state.users.storedUsers);
 
-	const userChats = useSelector(state=>state.chats.chatsData);
-	console.log(userChats);
+	const userChats = useSelector(state=>{
+		const chatsData = state.chats.chatsData
+		return Object.values(chatsData).sort((a,b)=>{
+			return new Date(b.updatedAt) - new Date(a.updatedAt);
+		});	
+	});
+
 
 	useEffect(()=>{
 			props.navigation.setOptions({
@@ -41,11 +50,35 @@ const ChatListScreen = props => {
 
 	},[props.route?.params]);
 
-	return <View style={styles.container}>
-		<Text>This is the chat list screen.</Text>
-		<Button title="go to Chat Screen" onPress={()=>{props.navigation.navigate("ChatScreen")}}/>
-		<Button title="go to Chat settings" onPress={()=>{props.navigation.navigate("ChatSettings")}}/>
-	</View>
+	return <PageContainer>
+
+				<PageTitle text={"Chats"}/>
+				
+				<FlatList 
+	        data = {userChats}
+					renderItem={(itemData)=>{
+						const chatData = itemData.item;
+						const chatId = chatData.key;
+
+						const otherUserId = chatData.users.find(uid => uid !== userData.userId);
+						const otherUser = storedUsers[otherUserId];				
+
+
+						if(!otherUser) return;
+
+						const title = `${otherUser.firstName} ${otherUser.lastName}`;
+						const subTitle = "This will be the message...";
+						const image = otherUser.profilePicture;
+
+						return <DataItem 
+						        title={title}
+										subTitle={subTitle}
+										image={image}
+										onPress={()=> props.navigation.navigate("ChatScreen",{chatId})}
+										/>
+
+					}}/>
+	</PageContainer>
 }
 
 const styles = StyleSheet.create({
